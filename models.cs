@@ -1,18 +1,38 @@
 using System.Windows.Media;
 using System.IO;
+using System.Diagnostics;
 
 namespace statictime;
 
 public class app_item
 {
-    public string name { get; set; } = "";
+    private string _cached_name = "";
     public string path { get; set; } = "";
     public long seconds_played { get; set; }
     public ImageSource? icon { get; set; }
     public bool show_exe { get; set; } = false;
     public bool full_time_format { get; set; } = false;
-    public string display_name => show_exe ? $"{name} ({Path.GetFileName(path)})" : name;
+    public string display_name => resolve_display_name();
     public string time => format_time(seconds_played, full_time_format);
+    private string resolve_display_name()
+    {
+        if (string.IsNullOrEmpty(_cached_name))
+        {
+            try 
+            {
+                var info = FileVersionInfo.GetVersionInfo(path);
+                if (!string.IsNullOrWhiteSpace(info.FileDescription)) _cached_name = info.FileDescription;
+                else if (!string.IsNullOrWhiteSpace(info.ProductName)) _cached_name = info.ProductName;
+                else _cached_name = Path.GetFileNameWithoutExtension(path);
+            }
+            catch 
+            {
+                _cached_name = Path.GetFileNameWithoutExtension(path);
+            }
+        }
+        return show_exe ? $"{_cached_name} ({Path.GetFileName(path)})" : _cached_name;
+    }
+
     public static string format_time(long s, bool full)
     {
         var t = TimeSpan.FromSeconds(s);
@@ -33,10 +53,13 @@ public class app_item
 public class save_data
 {
     public Dictionary<string, Dictionary<string, long>> history { get; set; } = new();
+    public Dictionary<string, int> word_stats { get; set; } = new();
     public List<string> blacklist { get; set; } = new();
     public bool show_exe_in_list { get; set; } = false;
     public bool show_full_time { get; set; } = true;
     public bool top_most { get; set; } = false;
+    public bool show_no_icon_apps { get; set; } = true;
+    public bool overlay_mode { get; set; } = false;
     public int refresh_rate { get; set; } = 1;
     public string current_theme { get; set; } = "dark";
     public bool autostart_enabled { get; set; } = false;
