@@ -32,9 +32,10 @@ public partial class MainWindow : Window
     private string _current_filter = "today";
     private bool _is_menu_open = false;
     private SolidColorBrush _text_brush = new SolidColorBrush(Color.FromRgb(0xdd, 0xdd, 0xdd));
-    private LowLevelMouseProc _mouse_proc;
-    private IntPtr _hook_id = IntPtr.Zero;
-
+    private LowLevelProc _mouse_proc;
+    private LowLevelProc _kb_proc;
+    private IntPtr _mouse_hook_id = IntPtr.Zero;
+    private IntPtr _kb_hook_id = IntPtr.Zero;
     public MainWindow()
     {
         InitializeComponent();
@@ -48,8 +49,10 @@ public partial class MainWindow : Window
         _timer.Interval = TimeSpan.FromSeconds(_tracker.data.refresh_rate);
         _timer.Tick += on_tick;
         _timer.Start();
-        _mouse_proc = hook_callback;
-        _hook_id = set_hook(_mouse_proc);
+        _mouse_proc = mouse_hook_callback;
+        _mouse_hook_id = set_mouse_hook(_mouse_proc);
+        _kb_proc = kb_hook_callback;
+        _kb_hook_id = set_kb_hook(_kb_proc);
         Task.Run(() => input_loop(_cts.Token));
         update_data_for_current_filter();
         this.Loaded += (s, e) => update_window();
@@ -82,7 +85,8 @@ public partial class MainWindow : Window
         }
         else
         {
-            UnhookWindowsHookEx(_hook_id);
+            UnhookWindowsHookEx(_mouse_hook_id);
+            UnhookWindowsHookEx(_kb_hook_id);
         }
         base.OnClosing(e);
     }
