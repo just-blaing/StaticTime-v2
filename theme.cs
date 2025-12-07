@@ -32,24 +32,24 @@ public partial class MainWindow
             theme_spreader.Fill = new SolidColorBrush(bg_color);
             Canvas.SetLeft(theme_spreader, pos.X);
             Canvas.SetTop(theme_spreader, pos.Y);
-            var max_dim = Math.Max(ActualWidth, ActualHeight) * 2.5;
-            var size_anim = new DoubleAnimation(0, max_dim, TimeSpan.FromSeconds(0.6))
+            var max_dim = Math.Max(ActualWidth, ActualHeight) * 3;
+            var size_anim = new DoubleAnimation(0, max_dim, TimeSpan.FromSeconds(0.5))
             {
                 EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
             };
-            var pos_anim_x = new DoubleAnimation(pos.X, pos.X - max_dim / 2, TimeSpan.FromSeconds(0.6))
+            var pos_anim_x = new DoubleAnimation(pos.X, pos.X - max_dim / 2, TimeSpan.FromSeconds(0.5))
             {
                 EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
             };
-            var pos_anim_y = new DoubleAnimation(pos.Y, pos.Y - max_dim / 2, TimeSpan.FromSeconds(0.6))
+            var pos_anim_y = new DoubleAnimation(pos.Y, pos.Y - max_dim / 2, TimeSpan.FromSeconds(0.5))
             {
                 EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
             };
-            var color_anim = new ColorAnimation(text_color, TimeSpan.FromSeconds(0.6))
-            {
-                 EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
-            };
+            var color_anim = new ColorAnimation(text_color, TimeSpan.FromSeconds(0.4));
             _text_brush.BeginAnimation(SolidColorBrush.ColorProperty, color_anim);
+            var bg_anim = new ColorAnimation(bg_color, TimeSpan.FromSeconds(0.5));
+            root_border.Background.BeginAnimation(SolidColorBrush.ColorProperty, bg_anim);
+
             size_anim.Completed += (s, e) =>
             {
                 finish_theme_apply(bg_color, menu_bg);
