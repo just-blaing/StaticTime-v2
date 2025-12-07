@@ -17,6 +17,8 @@ public partial class MainWindow
         check_showexe.IsChecked = _tracker.data.show_exe_in_list;
         check_fulltime.IsChecked = _tracker.data.show_full_time;
         check_topmost.IsChecked = _tracker.data.top_most;
+        check_noicons.IsChecked = _tracker.data.show_no_icon_apps;
+        check_overlay.IsChecked = _tracker.data.overlay_mode;
         Topmost = _tracker.data.top_most;
         int index = 0;
         switch(_tracker.data.refresh_rate)
@@ -28,6 +30,9 @@ public partial class MainWindow
             case 60: index = 4; break;
         }
         refresh.SelectedIndex = index;
+        blacklist_box.ItemsSource = null;
+        blacklist_box.ItemsSource = _tracker.data.blacklist;
+        apply_overlay_mode(_tracker.data.overlay_mode);
     }
 
     private void check_args()
@@ -39,17 +44,14 @@ public partial class MainWindow
             {
                 Hide();
                 ShowInTaskbar = false;
+                _tracker.data.total_launch++;
+                _tracker.save();
             }
         }
     }
     
     private void validate_state(object sender, EventArgs e)
-    {
-        if (WindowState == WindowState.Maximized)
-        {
-            WindowState = WindowState.Normal;
-        }
-    }
+    {}
 
     private void tray()
     {
@@ -81,6 +83,7 @@ public partial class MainWindow
         WindowState = WindowState.Normal;
         ShowInTaskbar = true;
         Activate();
+        apply_settings();
     }
 
     private void drag_window(object sender, MouseButtonEventArgs e)
@@ -90,6 +93,14 @@ public partial class MainWindow
 
     private void close(object? sender, RoutedEventArgs? e)
     {
+        if (_tracker.data.overlay_mode)
+        {
+            _tracker.data.overlay_mode = false;
+            apply_overlay_mode(false);
+            check_overlay.IsChecked = false;
+            _tracker.save();
+            return;
+        }
         Hide();
         ShowInTaskbar = false;
     }
@@ -99,13 +110,16 @@ public partial class MainWindow
         _is_exit = true;
         _cts.Cancel();
         if (_notify != null) _notify.Dispose();
-        UnhookWindowsHookEx(_hook_id);
+        UnhookWindowsHookEx(_mouse_hook_id);
+        UnhookWindowsHookEx(_kb_hook_id);
         _tracker.save();
         System.Windows.Application.Current.Shutdown();
     }
 
     private void menu(object? sender, RoutedEventArgs? e)
     {
+        if (_tracker.data.overlay_mode) return;
+        
         if (!_is_menu_open)
         {
             open_menu();
@@ -149,6 +163,7 @@ public partial class MainWindow
 
     private void show_time_categories(object sender, RoutedEventArgs e)
     {
+        if (_tracker.data.overlay_mode) return;
         if (categories.IsOpen) 
             categories.IsOpen = false;
         else 
@@ -185,6 +200,7 @@ public partial class MainWindow
     private void settings(object sender, RoutedEventArgs e)
     {
         close_menu();
+        apply_settings();
         panel_settings.Visibility = Visibility.Visible;
         panel_main.Visibility = Visibility.Collapsed;
         panel_stats.Visibility = Visibility.Collapsed;
@@ -240,6 +256,13 @@ public partial class MainWindow
         _tracker.data.show_full_time = check_fulltime.IsChecked == true;
         _tracker.save();
     }
+    
+    private void noicons(object sender, RoutedEventArgs e)
+    {
+        _tracker.data.show_no_icon_apps = check_noicons.IsChecked == true;
+        _tracker.save();
+        update_data_for_current_filter();
+    }
 
     private void topmost(object sender, RoutedEventArgs e)
     {
@@ -247,6 +270,43 @@ public partial class MainWindow
         _tracker.data.top_most = val;
         Topmost = val;
         _tracker.save();
+    }
+
+    private void overlay_mode(object sender, RoutedEventArgs e)
+    {
+        bool val = check_overlay.IsChecked == true;
+        _tracker.data.overlay_mode = val;
+        apply_overlay_mode(val);
+        _tracker.save();
+    }
+
+    private void apply_overlay_mode(bool enabled)
+    {
+        if (enabled)
+        {
+            ResizeMode = ResizeMode.NoResize;
+            Topmost = true;
+            ShowInTaskbar = false;
+            root_border.Opacity = 0.7;
+            btn_menu.IsEnabled = false;
+            time_filter.IsEnabled = false;
+            close_menu();
+            panel_stats.Visibility = Visibility.Collapsed;
+            panel_settings.Visibility = Visibility.Collapsed;
+            panel_main.Visibility = Visibility.Visible;
+            apply_filter("today");
+            update_data_for_current_filter();
+        }
+        else
+        {
+            ResizeMode = ResizeMode.CanResize;
+            Topmost = _tracker.data.top_most;
+            ShowInTaskbar = true;
+            root_border.Opacity = 1.0;
+            btn_menu.IsEnabled = true;
+            time_filter.IsEnabled = true;
+            update_data_for_current_filter();
+        }
     }
 
     private void change_rrate(object sender, SelectionChangedEventArgs e)
@@ -270,6 +330,46 @@ public partial class MainWindow
         if (System.Windows.MessageBox.Show("точно сбросить все данные?", "StaticTime", System.Windows.MessageBoxButton.YesNo) == System.Windows.MessageBoxResult.Yes)
         {
             _tracker.reset_data();
+            apply_settings();
+            update_data_for_current_filter();
+        }
+    }
+    
+    private void add_to_blacklist(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem mi && mi.Tag is app_item item)
+        {
+            if (!_tracker.data.blacklist.Contains(item.path))
+            {
+                _tracker.data.blacklist.Add(item.path);
+                _tracker.save();
+                apply_settings();
+                update_data_for_current_filter();
+            }
+        }
+    }
+
+    private void add_to_blacklist_manual(object sender, RoutedEventArgs e)
+    {
+        string input = blacklist_input.Text.Trim().ToLower();
+        if (string.IsNullOrEmpty(input) || input.Length < 3) return;
+        
+        if (!_tracker.data.blacklist.Contains(input))
+        {
+            _tracker.data.blacklist.Add(input);
+            _tracker.save();
+            apply_settings();
+            update_data_for_current_filter();
+            blacklist_input.Clear();
+        }
+    }
+    
+    private void remove_from_blacklist(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.DataContext is string path)
+        {
+            _tracker.data.blacklist.Remove(path);
+            _tracker.save();
             apply_settings();
             update_data_for_current_filter();
         }
