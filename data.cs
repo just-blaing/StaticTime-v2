@@ -57,8 +57,10 @@ public partial class MainWindow
         {
             foreach (var app in day.Value)
             {
-                if (!total_map.ContainsKey(app.Key)) total_map[app.Key] = 0;
-                total_map[app.Key] += app.Value;
+                var key = app.Key.ToLower().Trim();
+                if (_tracker.is_blacklisted(key)) continue;
+                if (!total_map.ContainsKey(key)) total_map[key] = 0;
+                total_map[key] += app.Value;
                 grand_total += app.Value;
             }
         }
@@ -78,8 +80,11 @@ public partial class MainWindow
                 {
                      foreach (var app in _tracker.data.history[day_str])
                      {
-                        if (!total_map.ContainsKey(app.Key)) total_map[app.Key] = 0;
-                        total_map[app.Key] += app.Value;
+                        var key = app.Key.ToLower().Trim();
+                        if (_tracker.is_blacklisted(key)) continue;
+                        
+                        if (!total_map.ContainsKey(key)) total_map[key] = 0;
+                        total_map[key] += app.Value;
                         period_total += app.Value;
                      }
                 }
@@ -105,7 +110,7 @@ public partial class MainWindow
             case "week": return "неделя";
             case "month": return "месяц";
             case "year": return "год";
-            default: return "за все время";
+            default: return "всё время";
         }
     }
 
@@ -114,17 +119,29 @@ public partial class MainWindow
         var ui_list = new List<app_item>();
         foreach (var kvp in map.OrderByDescending(x => x.Value))
         {
+             if (!File.Exists(kvp.Key)) continue;
+             var icon = _tracker.get_icon(kvp.Key);
+             
+             if (!_tracker.data.show_no_icon_apps && icon == null) continue;
+             
              ui_list.Add(new app_item 
              { 
-                 name = Path.GetFileNameWithoutExtension(kvp.Key), 
                  path = kvp.Key, 
                  seconds_played = kvp.Value,
-                 icon = _tracker.get_icon(kvp.Key),
+                 icon = icon,
                  show_exe = _tracker.data.show_exe_in_list,
                  full_time_format = _tracker.data.show_full_time
              });
         }
-        list_apps.ItemsSource = ui_list;
+        
+        if (_tracker.data.overlay_mode && ui_list.Count > 0)
+        {
+            list_apps.ItemsSource = new List<app_item> { ui_list[0] };
+        }
+        else
+        {
+            list_apps.ItemsSource = ui_list;
+        }
     }
 
     private void update_stats_ui()
@@ -132,7 +149,6 @@ public partial class MainWindow
         stats_alt.Text = $"вы нажали Alt + Tab: {_tracker.data.total_altt}";
         var t = TimeSpan.FromSeconds(_tracker.data.total_afk);
         stats_afk.Text = $"вы пробыли в афк: {(int)t.TotalHours}ч {t.Minutes}м {t.Seconds}с";
-        stats_boot.Text = $"вы включили пк: {_tracker.data.total_launch}";
         stats_lmb.Text = $"вы нажали лкм: {_tracker.data.total_lmb}";
         stats_rmb.Text = $"вы нажали пкм: {_tracker.data.total_rmb}";
         double cm = _tracker.data.total_scroll;
@@ -140,5 +156,12 @@ public partial class MainWindow
             stats_scroll.Text = $"вы пролистали: {(cm/100.0):F2}м";
         else
             stats_scroll.Text = $"вы пролистали: {cm}см";
+        var top_words = _tracker.data.word_stats
+            .OrderByDescending(x => x.Value)
+            .Take(10)
+            .Select(x => $"{x.Key}: {x.Value}")
+            .ToList();
+        
+        list_words.ItemsSource = top_words;
     }
 }
