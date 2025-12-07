@@ -4,9 +4,13 @@
         xmlns:local="clr-namespace:statictime"
         Title="StaticTime" Height="876" Width="478"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
+        MaxWidth="478" MaxHeight="876" MinWidth="300" MinHeight="400"
         x:Name="window"
         SizeChanged="change_size">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
     <Window.Resources>
         <local:theme_to_bool_converter x:Key="themeToBoolConverter"/>
         <Style TargetType="Button" x:Key="navButton">
@@ -28,6 +32,10 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#22888888"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.3"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -74,10 +82,26 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="5"/>
         </Style>
+        <Style TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ScrollContentPresenter Grid.Column="0" Margin="0,0,5,0"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Width="6" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Value="{TemplateBinding VerticalOffset}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
-    <Border x:Name="root_border" Background="#1e1e1e" CornerRadius="15" BorderBrush="#333" BorderThickness="1" Margin="10" UseLayoutRounding="True">
+    <Border x:Name="root_border" Background="#1e1e1e" CornerRadius="15" BorderBrush="#333" BorderThickness="1" Margin="5" UseLayoutRounding="True">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.4" Color="Black"/>
+            <DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.4" Color="Black"/>
         </Border.Effect>
         <Grid>
             <Canvas x:Name="theme_layer" Panel.ZIndex="0" IsHitTestVisible="False">
@@ -90,10 +114,10 @@
                 </Grid.RowDefinitions>
                 <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="drag_window">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,0,0,0">
-                        <Button Content="☰" Click="menu" Style="{StaticResource navButton}" FontSize="16" Padding="5"/>
+                        <Button x:Name="btn_menu" Content="☰" Click="menu" Style="{StaticResource navButton}" FontSize="16" Padding="5" WindowChrome.IsHitTestVisibleInChrome="True"/>
                     </StackPanel>
-                    <TextBlock x:Name="title" Text="StaticTime v2" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                    <Button Content="✕" Click="close" Style="{StaticResource navButton}" HorizontalAlignment="Right" Margin="0,0,10,0" Foreground="#ff5555" Padding="5"/>
+                    <TextBlock x:Name="title" Text="StaticTime v2.1" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                    <Button Content="✕" Click="close" Style="{StaticResource navButton}" HorizontalAlignment="Right" Margin="0,0,10,0" Foreground="#ff5555" Padding="5" WindowChrome.IsHitTestVisibleInChrome="True"/>
                 </Grid>
                 <Grid Grid.Row="1" Margin="10">
                     <Grid x:Name="panel_main">
@@ -119,13 +143,19 @@
                                 </Popup>
                             </Grid>
                         </Grid>
-                        <Grid Grid.Row="1" Background="Transparent" MouseLeftButtonDown="close">
+                        <Grid Grid.Row="1" Background="Transparent">
                             <Grid x:Name="panel_list" Visibility="Visible">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <ItemsControl x:Name="list_apps">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Grid Margin="2,5" x:Name="item_grid" Background="#11888888">
+                                                    <Grid.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="заблокировать" Click="add_to_blacklist"
+                                                                      Tag="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.DataContext}"/>
+                                                        </ContextMenu>
+                                                    </Grid.ContextMenu>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="40"/>
                                                         <ColumnDefinition Width="*"/>
@@ -171,65 +201,115 @@
                         <StackPanel Margin="20">
                             <Button Content="← назад" Click="close_stats" Style="{StaticResource navButton}" HorizontalAlignment="Left" Margin="0,0,0,20"/>
                             <TextBlock Text="статистика" FontSize="20" Foreground="{Binding ElementName=window, Path=Tag}" Margin="0,0,0,20"/>
-                            <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
-                                <TextBlock x:Name="stats_alt" Text="вы нажали Alt + Tab: 0" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
-                            </Border>
-                            <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
-                                <TextBlock x:Name="stats_afk" Text="вы пробыли в афк: 0с" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
-                            </Border>
-                            <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
-                                <TextBlock x:Name="stats_boot" Text="вы включили пк: 0" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
-                            </Border>
-                            <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
-                                <TextBlock x:Name="stats_lmb" Text="вы нажали лкм: 0" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
-                            </Border>
-                            <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
-                                <TextBlock x:Name="stats_rmb" Text="вы нажали пкм: 0" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
-                            </Border>
-                            <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
-                                <TextBlock x:Name="stats_scroll" Text="вы пролистали: 0см" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
-                            </Border>
+                            <ScrollViewer MaxHeight="600" VerticalScrollBarVisibility="Hidden">
+                                <StackPanel>
+                                    <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
+                                        <TextBlock x:Name="stats_alt" Text="вы нажали Alt + Tab: 0" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
+                                    </Border>
+                                    <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
+                                        <TextBlock x:Name="stats_afk" Text="вы пробыли в афк: 0с" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
+                                    </Border>
+                                    <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
+                                        <TextBlock x:Name="stats_lmb" Text="вы нажали лкм: 0" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
+                                    </Border>
+                                    <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
+                                        <TextBlock x:Name="stats_rmb" Text="вы нажали пкм: 0" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
+                                    </Border>
+                                    <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,5">
+                                        <TextBlock x:Name="stats_scroll" Text="вы пролистали: 0см" Foreground="{Binding ElementName=window, Path=Tag}" FontSize="14"/>
+                                    </Border>
+                                    <TextBlock Text="топ слов:" Foreground="#666" Margin="0,15,0,5" FontWeight="Bold"/>
+                                    <ItemsControl x:Name="list_words">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#11888888" CornerRadius="5" Padding="10" Margin="0,2">
+                                                    <TextBlock Text="{Binding}" Foreground="{Binding Path=Tag, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" FontSize="13"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
                         </StackPanel>
                     </Grid>
                     <Grid x:Name="panel_settings" Visibility="Collapsed" Panel.ZIndex="15">
-                        <StackPanel Margin="20">
-                            <Button Content="← назад" Click="close_settings" Style="{StaticResource navButton}" HorizontalAlignment="Left"/>
-                            <StackPanel Margin="0,20,0,0">
-                                <TextBlock Text="тема приложения:" Foreground="{Binding ElementName=window, Path=Tag}" Margin="0,0,0,5"/>
-                                <WrapPanel>
-                                    <ToggleButton x:Name="theme_dark" Content="тёмная" Click="set_theme_dark" Margin="0,0,5,0" Style="{StaticResource themeButton}" Background="#333" Foreground="White" IsChecked="{Binding Path=current_theme, Converter={StaticResource themeToBoolConverter}, ConverterParameter=dark}"/>
-                                    <ToggleButton x:Name="theme_white" Content="светлая" Click="set_theme_white" Margin="0,0,5,0" Style="{StaticResource themeButton}" Background="#ddd" Foreground="Black" IsChecked="{Binding Path=current_theme, Converter={StaticResource themeToBoolConverter}, ConverterParameter=white}"/>
-                                    <ToggleButton x:Name="theme_amoled" Content="amoled" Click="set_theme_amoled" Margin="0,0,5,0" Style="{StaticResource themeButton}" Background="Black" Foreground="White" IsChecked="{Binding Path=current_theme, Converter={StaticResource themeToBoolConverter}, ConverterParameter=amoled}"/>
-                                </WrapPanel>
+                         <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="20">
+                                <Button Content="← назад" Click="close_settings" Style="{StaticResource navButton}" HorizontalAlignment="Left"/>
+                                <StackPanel Margin="0,20,0,0">
+                                    <TextBlock Text="тема приложения:" Foreground="{Binding ElementName=window, Path=Tag}" Margin="0,0,0,5"/>
+                                    <WrapPanel>
+                                        <ToggleButton x:Name="theme_dark" Content="тёмная" Click="set_theme_dark" Margin="0,0,5,5" Style="{StaticResource themeButton}" Background="#333" Foreground="White" IsChecked="{Binding Path=current_theme, Converter={StaticResource themeToBoolConverter}, ConverterParameter=dark}"/>
+                                        <ToggleButton x:Name="theme_white" Content="светлая" Click="set_theme_white" Margin="0,0,5,5" Style="{StaticResource themeButton}" Background="#ddd" Foreground="Black" IsChecked="{Binding Path=current_theme, Converter={StaticResource themeToBoolConverter}, ConverterParameter=white}"/>
+                                        <ToggleButton x:Name="theme_amoled" Content="amoled" Click="set_theme_amoled" Margin="0,0,5,5" Style="{StaticResource themeButton}" Background="Black" Foreground="White" IsChecked="{Binding Path=current_theme, Converter={StaticResource themeToBoolConverter}, ConverterParameter=amoled}"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                    <CheckBox x:Name="check_autostart" Click="autostart" VerticalAlignment="Center"/>
+                                    <TextBlock Text="автозапуск (silent)" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                    <CheckBox x:Name="check_showexe" Click="showexe" VerticalAlignment="Center"/>
+                                    <TextBlock Text="показывать .exe файла" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                    <CheckBox x:Name="check_fulltime" Click="fulltime" VerticalAlignment="Center"/>
+                                    <TextBlock Text="показывать полное время" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                    <CheckBox x:Name="check_topmost" Click="topmost" VerticalAlignment="Center"/>
+                                    <TextBlock Text="поверх всех окон" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                    <CheckBox x:Name="check_noicons" Click="noicons" VerticalAlignment="Center"/>
+                                    <TextBlock Text="показывать окна без иконок" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                    <CheckBox x:Name="check_overlay" Click="overlay_mode" VerticalAlignment="Center"/>
+                                    <TextBlock Text="режим оверлея" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,20,0,0">
+                                    <TextBlock Text="автообновление:" Foreground="{Binding ElementName=window, Path=Tag}" Margin="0,0,0,5"/>
+                                    <ComboBox x:Name="refresh" SelectionChanged="change_rrate" Width="100" HorizontalAlignment="Left">
+                                        <ComboBoxItem Content="1 сек"/>
+                                        <ComboBoxItem Content="5 сек"/>
+                                        <ComboBoxItem Content="10 сек"/>
+                                        <ComboBoxItem Content="30 сек"/>
+                                        <ComboBoxItem Content="60 сек"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <StackPanel Margin="0,20,0,0">
+                                    <TextBlock Text="черный список:" Foreground="{Binding ElementName=window, Path=Tag}" Margin="0,0,0,5"/>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="blacklist_input" Grid.Column="0" Background="#11888888" Foreground="{Binding ElementName=window, Path=Tag}" BorderBrush="#333" BorderThickness="1" Padding="5" VerticalContentAlignment="Center" Height="30"/>
+                                        <Button Grid.Column="1" Content="+" Click="add_to_blacklist_manual" Style="{StaticResource navButton}" Margin="5,0,0,0" Padding="10,0" Height="30"/>
+                                    </Grid>
+                                    <Border Background="#11000000" CornerRadius="5" Height="150" BorderBrush="#333" BorderThickness="1">
+                                        <ScrollViewer>
+                                            <ItemsControl x:Name="blacklist_box">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="5">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{Binding}" Foreground="#888" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                            <Button Grid.Column="1" Content="x" Click="remove_from_blacklist" Foreground="#ff5555" Margin="5,0,0,0" Style="{StaticResource navButton}" Padding="5,0"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Border>
+                                </StackPanel>
+                                <Button Content="сброс данных" Click="reset" Background="#550000" Foreground="White" Margin="0,30,0,0" Padding="10" HorizontalAlignment="Left"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                                <CheckBox x:Name="check_autostart" Click="autostart" VerticalAlignment="Center"/>
-                                <TextBlock Text="автозапуск (silent)" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                                <CheckBox x:Name="check_showexe" Click="showexe" VerticalAlignment="Center"/>
-                                <TextBlock Text="показывать .exe файла" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                                <CheckBox x:Name="check_fulltime" Click="fulltime" VerticalAlignment="Center"/>
-                                <TextBlock Text="показывать полное время" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                                <CheckBox x:Name="check_topmost" Click="topmost" VerticalAlignment="Center"/>
-                                <TextBlock Text="поверх всех окон" Foreground="{Binding ElementName=window, Path=Tag}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </StackPanel>
-                            <StackPanel Margin="0,20,0,0">
-                                <TextBlock Text="автообновление:" Foreground="{Binding ElementName=window, Path=Tag}" Margin="0,0,0,5"/>
-                                <ComboBox x:Name="refresh" SelectionChanged="change_rrate" Width="100" HorizontalAlignment="Left">
-                                    <ComboBoxItem Content="1 сек"/>
-                                    <ComboBoxItem Content="5 сек"/>
-                                    <ComboBoxItem Content="10 сек"/>
-                                    <ComboBoxItem Content="30 сек"/>
-                                    <ComboBoxItem Content="60 сек"/>
-                                </ComboBox>
-                            </StackPanel>
-                            <Button Content="сброс данных" Click="reset" Background="#550000" Foreground="White" Margin="0,30,0,0" Padding="10" HorizontalAlignment="Left"/>
-                        </StackPanel>
+                         </ScrollViewer>
                     </Grid>
                 </Grid>
             </Grid>
