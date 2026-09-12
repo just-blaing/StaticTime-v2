@@ -50,10 +50,14 @@ public class app_item
     }
 }
 
+public class word_data
+{
+    public Dictionary<string, int> word_stats { get; set; } = new();
+}
+
 public class save_data
 {
     public Dictionary<string, Dictionary<string, long>> history { get; set; } = new();
-    public Dictionary<string, int> word_stats { get; set; } = new();
     public List<string> blacklist { get; set; } = new();
     public bool show_exe_in_list { get; set; } = false;
     public bool show_full_time { get; set; } = true;
