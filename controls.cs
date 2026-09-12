@@ -58,10 +58,19 @@ public partial class MainWindow
         try 
         {
             _notify = new Forms.NotifyIcon();
-            var loc = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            if (!string.IsNullOrEmpty(loc) && File.Exists(loc))
+            var icon_uri = new Uri("pack://application:,,,/assets/icon.ico");
+            var icon_stream = System.Windows.Application.GetResourceStream(icon_uri)?.Stream;
+            if (icon_stream != null)
             {
-                _notify.Icon = System.Drawing.Icon.ExtractAssociatedIcon(loc);
+                _notify.Icon = new System.Drawing.Icon(icon_stream);
+            }
+            else
+            {
+                var loc = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                if (!string.IsNullOrEmpty(loc) && File.Exists(loc))
+                {
+                    _notify.Icon = System.Drawing.Icon.ExtractAssociatedIcon(loc);
+                }
             }
             _notify.Visible = true;
             _notify.Text = "StaticTime";
@@ -349,18 +358,18 @@ public partial class MainWindow
         }
     }
 
-    private void add_to_blacklist_manual(object sender, RoutedEventArgs e)
+    private void open_blacklist_picker(object sender, RoutedEventArgs e)
     {
-        string input = blacklist_input.Text.Trim().ToLower();
-        if (string.IsNullOrEmpty(input) || input.Length < 3) return;
-        
-        if (!_tracker.data.blacklist.Contains(input))
+        var picker = new bpicker(_tracker) { Owner = this };
+        if (picker.ShowDialog() == true && !string.IsNullOrEmpty(picker.selected_path))
         {
-            _tracker.data.blacklist.Add(input);
-            _tracker.save();
-            apply_settings();
-            update_data_for_current_filter();
-            blacklist_input.Clear();
+            if (!_tracker.data.blacklist.Contains(picker.selected_path))
+            {
+                _tracker.data.blacklist.Add(picker.selected_path);
+                _tracker.save();
+                apply_settings();
+                update_data_for_current_filter();
+            }
         }
     }
     
