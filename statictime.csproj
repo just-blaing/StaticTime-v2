@@ -6,5 +6,10 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>assets\icon.ico</ApplicationIcon>
+    <NoWarn>CS8981</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="assets\icon.ico"/>
+  </ItemGroup>
 </Project>
